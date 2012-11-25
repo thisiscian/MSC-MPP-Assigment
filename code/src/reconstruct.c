@@ -5,6 +5,7 @@ void reconstruct(char *infilename, int iterations)
 	int i;
 	int nx, ny;
 	char outfilename[256];
+	float max_change = 0;
 	pgmsize(infilename, &nx, &ny);
 	
 	float buf[nx][ny];
@@ -13,7 +14,7 @@ void reconstruct(char *infilename, int iterations)
 	initialise_segment(segment, nx+2, ny+2);
 	for(i=0; i<iterations;i++)
 	{
-		reconstruct_image_segment(segment, buf, 0, nx, ny);
+		reconstruct_image_segment(segment, buf, 0, nx, ny, &max_change);
 	}
 	removehalo(segment, buf, nx, ny);
 	sprintf(outfilename, "../output_files/reconstruct_%dx%d_%d-iterations.pgm", nx, ny, iterations);
@@ -33,13 +34,14 @@ void initialise_segment(void *segment_in, int nx, int ny)
 	}	
 }
 
-void reconstruct_image_segment(void *segment, void *edge_in, int nx_min, int nx_max, int ny)
+void reconstruct_image_segment(void *segment, void *edge_in, int nx_min, int nx_max, int ny, float *max_change)
 {
 	int i,j;
 	int nx_range = nx_max-nx_min;
 	float *old = (float *) segment;
 	float new[nx_range+2][ny+2];
 	float *edge = (float *) edge_in;
+	*max_change = 0;
 	for(j=1;j<ny+1;j++)
 	{
 		for(i=1;i<nx_range+1;i++)
@@ -51,6 +53,7 @@ void reconstruct_image_segment(void *segment, void *edge_in, int nx_min, int nx_
 	{
 		for(i=1;i<nx_range+1;i++)
 		{
+			if(fabs(old[i*(ny+2)+j]-new[i][j]) > *max_change) *max_change = fabs(old[i*(ny+2)+j]-new[i][j]);
 			old[i*(ny+2)+j] = new[i][j];
 		}
 	}	
