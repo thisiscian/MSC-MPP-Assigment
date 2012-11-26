@@ -30,24 +30,24 @@
 #  Most important is the "real" time which is the elapsed wallclock time.
 #
 
-MPIEXE=casestudy
+MPIEXE=image_reconstruction_2d
 
 if [[ x$1x == xCOMx ]]; then
 echo "--------------------------------------------------"
 echo "Running MPI program <$MPIEXE> on" $NSLOTS "processes"
 echo "--------------------------------------------------"
 echo
-pwd
 make
-pwd
 cd bin
-(time mpiexec -n $NSLOTS ./$MPIEXE) 2>&1
-
+	for N in 1 2 3 4 6 8 10 12 16; do
+		(time mpiexec -n $N ./$MPIEXE) 2>&1
+		echo ""
+	done
 echo
 echo "--------------------"
 echo "Finished MPI program"
 echo "--------------------"
 echo
 else
-	qsub -pe mpi 4 $0 COM
+	qsub -pe mpi 16 $0 COM
 fi

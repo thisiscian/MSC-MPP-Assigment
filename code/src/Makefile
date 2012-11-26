@@ -9,7 +9,7 @@ $(EXECUTABLE): $(SOURCE) Makefile $(HEADER) | $(EXECUTABLE_FOLDER) ../output_fil
 	$(CC) $(CC_FLAGS) $(SOURCE) -o $(EXECUTABLE_FOLDER)/$@
 
 run: $(EXECUTABLE)
-	mpiexec -n 8 $(EXECUTABLE_FOLDER)/$(EXECUTABLE)
+	mpiexec -n 12 $(EXECUTABLE_FOLDER)/$(EXECUTABLE)
 
 clean:
 	-@ rm *.o  
