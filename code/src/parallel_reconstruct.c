@@ -1,17 +1,13 @@
 #include "parallel_reconstruct.h"
 
-void p_reconstruct(char *infilename, int type, float *limits)
+void p_reconstruct(char *inpath, char *infile, char *outpath, float *limits)
 {
-	/* this is only here for debugging */
-	setbuf(stdout, NULL);
-
-	char outfilename[256];
+	char outfilename[256], infilename[256];
 
 	/* initialises MPI
  	 * sets 'rank' to the id of the current thread
  	 * sets 'nproc' to the total number of threads */
 	int rank=0, nproc=1;
-	MPI_Init(NULL, NULL);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &nproc);
 
@@ -25,7 +21,6 @@ void p_reconstruct(char *infilename, int type, float *limits)
    * if the limit is the number of iterations, 
    * and the limit is less than one, don't do an[1] iterations*/
 	int i=0, j=0, keep_going=1;
-	if(type == 0 && *limits < 1) keep_going = 0;
 
 	/* floats used when the limit is to a minimum change in the pixels */
 	float change[nproc], max_change; // floats that 
@@ -49,6 +44,7 @@ void p_reconstruct(char *infilename, int type, float *limits)
 	MPI_Cart_coords(cartesian_communicator, rank, ndims, coords);
 	
 	/* this section sets the sizes of the file, according to the image */
+	sprintf(infilename, "%s/%s", inpath, infile);
 	pgmsize(infilename, &n[0], &n[1]);
 	for(i=0; i<2; i++)
 	{
@@ -184,33 +180,27 @@ void p_reconstruct(char *infilename, int type, float *limits)
 		}
 
 		i++;
-		switch (type)
+		if(i >= *limits && *limits >= 1) keep_going = 0;
+		else if(*limits < 1)
 		{
-			/* type = 0; the limit is simply the number of iterations performed */
-			case 0:
-				if(i >= *limits) keep_going = 0;
-				break;
-			/* type = 1; the limit is the minimum change between reconstructions
- 			 * and as such, the loop keeps going until all segments achieve this*/
-			case 1:
-				MPI_Gather(&max_change, 1, MPI_FLOAT, change, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
-				if(rank == 0)
+			MPI_Gather(&max_change, 1, MPI_FLOAT, change, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
+			if(rank == 0)
+			{
+				for(j=1; j<nproc; j++)
 				{
-					for(j=1; j<nproc; j++)
-					{
-						if(max_change < change[j]) max_change = change[j];
-					}
-					if(max_change <= *limits) keep_going = 0;
-					for(j=1;j<nproc;j++)
-					{
-						MPI_Issend(&keep_going, 1, MPI_INT, j, 0, MPI_COMM_WORLD, &request[0]);
-					}
+					if(max_change < change[j]) max_change = change[j];
 				}
-				else
+				if(max_change <= *limits ) keep_going = 0;
+				for(j=1;j<nproc;j++)
 				{
-					MPI_Recv(&keep_going, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status[0]);
+					MPI_Issend(&keep_going, 1, MPI_INT, j, 0, MPI_COMM_WORLD, &request[0]);
 				}
-				break;
+			}
+			else
+			{
+				MPI_Recv(&keep_going, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &status[0]);
+			}
+			break;
 		}
 	}
 	/* sets 'out' to the nonhalo region of 'segment'*/
@@ -257,16 +247,10 @@ void p_reconstruct(char *infilename, int type, float *limits)
 	   * 	N is the number of threads
 	   * 	{i,l} is the type of limit
 	   * 	and L is the limiting number */
-		switch (type)
-		{
-			case 0:
-				sprintf(outfilename, "../output_files/%s_reconstruct_p%d_i%.0f.pgm", &infilename[15], nproc, *limits);
-				break;
-			case 1:
-				sprintf(outfilename, "../output_files/%s_reconstruct_p%d_l%f.pgm", &infilename[15], nproc, *limits);
-				break;
-		}
+		if(*limits >= 1)
+			sprintf(outfilename, "%s/%s_reconstruct_p%d_i%0.f.pgm", outpath, infile, nproc, *limits);
+		if(*limits < 1)
+			sprintf(outfilename, "%s/%s_reconstruct_p%d_l%f.pgm", outpath, infile, nproc, *limits);
 		pgmwrite(outfilename, buf, n[0], n[1]);
 	}
-	MPI_Finalize();
 }

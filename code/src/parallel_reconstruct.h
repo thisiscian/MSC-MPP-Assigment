@@ -5,5 +5,5 @@
 #include "reconstruct.h"
 #include <mpi.h>
 
-void p_reconstruct(char *infilename, int type, float *limit);
+void p_reconstruct(char *inpath, char *infile, char *outpath, float *limits);
 #endif

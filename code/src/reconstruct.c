@@ -1,23 +1,34 @@
 #include "reconstruct.h"
 
-void reconstruct(char *infilename, int iterations)
+void reconstruct(char *inpath, char *infile, char *outpath, float *limits)
 {
-	int i;
 	int nx, ny;
-	char outfilename[256];
+	char outfilename[256], infilename[256];
 	float max_change = 0;
+	sprintf(infilename, "%s/%s", inpath, infile);
 	pgmsize(infilename, &nx, &ny);
+	
+	int i=0, keep_going=1;
 	
 	float buf[nx][ny];
 	float segment[nx+2][ny+2];
 	pgmread(infilename, buf, nx, ny);
 	initialise_segment(segment, nx+2, ny+2);
-	for(i=0; i<iterations;i++)
+	while(keep_going == 1)
 	{
 		reconstruct_image_segment(segment, buf, 0, nx, 0, ny, &max_change);
+		i++;
+
+		if(i >= *limits && *limits >= 1) keep_going = 0;
+		else if(max_change <= *limits && *limits < 1) keep_going = 0;
 	}
+	
+	printf("Program did %d iterations.\n", i);
 	removehalo(segment, buf, nx, ny);
-	sprintf(outfilename, "../output_files/reconstruct_%dx%d_%d-iterations.pgm", nx, ny, iterations);
+	if(*limits >= 1)
+		sprintf(outfilename, "%s/%s_reconstruct_serial_i%.0f.pgm", outpath, infile, *limits);
+	if(*limits < 1)
+		sprintf(outfilename, "%s/%s_reconstruct_serial_l%f.pgm", outpath, infile, *limits);
 	pgmwrite(outfilename, buf, nx, ny);
 }
 
