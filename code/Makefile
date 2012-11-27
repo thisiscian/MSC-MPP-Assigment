@@ -1,8 +1,11 @@
 main:
 	cd src/ && make	
 
-run:
-	cd src/ && make run
+prun:
+	cd src/ && make prun
+
+srun:
+	cd src/ && make srun
 
 clean:
 	cd src/ && make clean
