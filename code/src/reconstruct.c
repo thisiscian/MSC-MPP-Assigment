@@ -1,10 +1,10 @@
 #include "reconstruct.h"
 
-void reconstruct(char *inpath, char *infile, char *outpath, float *limits)
+void reconstruct(char *inpath, char *infile, char *outpath, int limit_type, float *limits)
 {
 	int nx, ny;
 	char outfilename[256], infilename[256];
-	float max_change = 0;
+	float max_change = 0, total = 0;
 	sprintf(infilename, "%s/%s", inpath, infile);
 	pgmsize(infilename, &nx, &ny);
 	
@@ -16,18 +16,18 @@ void reconstruct(char *inpath, char *infile, char *outpath, float *limits)
 	initialise_segment(segment, nx+2, ny+2);
 	while(keep_going == 1)
 	{
-		reconstruct_image_segment(segment, buf, 0, nx, 0, ny, &max_change);
 		i++;
-
-		if(i >= *limits && *limits >= 1) keep_going = 0;
-		else if(max_change <= *limits && *limits < 1) keep_going = 0;
+		reconstruct_image_segment(segment, buf, 0, nx, 0, ny, &max_change, &total);
+		if(i % 100 == 0) printf("Average Pixel Value at iteration %d = %f\n", i, total/(nx*ny));
+		if(i >= *limits && limit_type == 0) keep_going = 0;
+		else if(max_change <= *limits && limit_type == 1) keep_going = 0;
 	}
 	
-	printf("Program did %d iterations.\n", i);
+	printf("\nProgram did %d iterations.\n", i);
 	removehalo(segment, buf, nx, ny);
-	if(*limits >= 1)
+	if(limit_type == 0)
 		sprintf(outfilename, "%s/%s_reconstruct_serial_i%.0f.pgm", outpath, infile, *limits);
-	if(*limits < 1)
+	if(limit_type == 1)
 		sprintf(outfilename, "%s/%s_reconstruct_serial_l%f.pgm", outpath, infile, *limits);
 	pgmwrite(outfilename, buf, nx, ny);
 }
@@ -45,7 +45,7 @@ void initialise_segment(void *segment_in, int nx, int ny)
 	}	
 }
 
-void reconstruct_image_segment(void *segment, void *edge_in, int nx_min, int nx_max, int ny_min, int ny_max, float *max_change)
+void reconstruct_image_segment(void *segment, void *edge_in, int nx_min, int nx_max, int ny_min, int ny_max, float *max_change, float *total)
 {
 	int i,j;
 	int nx_range = nx_max-nx_min;
@@ -54,11 +54,13 @@ void reconstruct_image_segment(void *segment, void *edge_in, int nx_min, int nx_
 	float new[nx_range+2][ny_range+2];
 	float *edge = (float *) edge_in;
 	*max_change = 0;
+	*total = 0;
 	for(j=1;j<ny_range+1;j++)
 	{
 		for(i=1;i<nx_range+1;i++)
 		{
 			new[i][j] = 0.25*(old[(i-1)*(ny_range+2)+j]+old[(i+1)*(ny_range+2)+j]+old[i*(ny_range+2)+(j-1)]+old[i*(ny_range+2)+(j+1)]-edge[(i-1)*ny_range+j-1]);
+			*total += new[i][j];
 		}
 	}	
 	for(j=1;j<ny_range+1;j++)

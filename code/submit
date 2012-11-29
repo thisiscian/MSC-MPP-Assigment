@@ -1,31 +1,44 @@
 #!/bin/bash
 #$ -cwd -V -N mpp_cw -e output_files/logs/error-$JOB_NAME-$JOB_ID -o output_files/logs/$JOB_NAME-$JOB_ID
 
-ITERATIONS=100
+LIMIT_TYPE=0
+LIMIT=1000
 INPUT_FOLDER=../input_files
-INPUT_FILE=edge512x384.pgm
+INPUT_FILE=edge192x128.pgm 
+#INPUT_FILE=edge256x192.pgm 
+#INPUT_FILE=edge512x384.pgm  
+#INPUT_FILE=edge768x768.pgm
+#INPUT_FILE=edge1024x1408.pgm 
+
+FOR_MIN=1
+FOR_MAX=16
+FOR_INCREMENT=1
+
 OUTPUT_FOLDER=../output_files
-SERIAL="./serial $ITERATIONS $INPUT_FOLDER $INPUT_FILE $OUTPUT_FOLDER"
-PARALLEL="./parallel $ITERATIONS $INPUT_FOLDER $INPUT_FILE $OUTPUT_FOLDER"
+SERIAL="./serial $LIMIT_TYPE $LIMIT $INPUT_FOLDER $INPUT_FILE $OUTPUT_FOLDER"
+PARALLEL="./parallel $LIMIT_TYPE $LIMIT $INPUT_FOLDER $INPUT_FILE $OUTPUT_FOLDER"
 
 if [[ x$1x == xCOMx ]]; then
-make
+make &>/dev/null
 cd bin
-	echo "#$INPUT_FILE -- $ITERATIONS"
+	echo "#$INPUT_FILE -- $LIMIT"
 	echo "#SERIAL"
 	
-  echo -e "#iterations\treal\tuser\tsys"
-	echo 0 $((time $SERIAL) )  | awk '/iterations/{printf $1"\t"; gsub( /s/, "", $0 ); gsub ( /m/, " ", $0); printf $16*60+$17"\t" $19*60+$20"\t"$22*60+$23"\n";}'
+  echo -e "#threads\titerations\tmax_change\treal time"
+	printf "##0\t"
+	(time $SERIAL) 2>&1	| awk '{RS="\n\n";} /Program did /{printf $3"\t" ;}  /Greatest change/{printf $7"\t";} /real/{gsub( /s/, "", $0 ); gsub ( /m/, " ", $0); printf ($2*60+$3)"\n";}'
 	echo
 	echo "#PARALLEL"
-	for N in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16; do
-		echo $N $((time mpiexec -n $N $PARALLEL) ) | awk '/iterations/{printf $1"\t"; gsub( /s/, "", $0 ); gsub ( /m/, " ", $0); printf $16*60+$17"\t" $19*60+$20"\t"$22*60+$23"\n";}'
+  echo -e "#threads\titerations\tmax_change\treal time"
+	for (( N=$FOR_MIN; N<=$FOR_MAX;N+=$FOR_INCREMENT )); do
+		printf $N"\t"
+		(time mpiexec -n $N $PARALLEL) 2>&1 | awk '{RS="\n\n";} /Program did /{printf $3"\t" ;}  /Greatest change/{printf $7"\t";} /real/{gsub( /s/, "", $0 ); gsub ( /m/, " ", $0); printf ($2*60+$3)"\n";}'
 	done
-cd ../output_files
 
-	for N in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16; do
-		if [[ $(diff $INPUT_FILE\_reconstruct\_p$N\_i$ITERATIONS.pgm $INPUT_FILE\_reconstruct\_serial\_i$ITERATIONS.pgm) ]]; then
-			echo "#ERROR IN $N"
+	cd ../output_files
+	for (( N=$FOR_MIN; N<=$FOR_MAX;N+=$FOR_INCREMENT )); do
+		if [[ $(diff $INPUT_FILE\_reconstruct\_p$N\_i$LIMIT.pgm $INPUT_FILE\_reconstruct\_serial\_i$LIMIT.pgm) ]]; then
+			echo "#ERROR: File \""$INPUT_FILE"_reconstruct_p"$N"_i"$LIMIT".pgm\" does not match the serial version"
 		fi
 	done 
 else

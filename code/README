@@ -1,0 +1,37 @@
+############################################
+# README - 2D Reconstruction of an edgemap #
+############################################
+
+SERIAL
+======
+The serial program can be run with  `make srun'.
+Input variables can be modified in the "src/Makefile" folder
+These include:
+	Location for executable files
+	Name of executable files
+	Location of input files
+	Location for output files	
+	Type of Limiting factor
+		0 - the number of iterations will be the limitting factor
+		1 - the maximum change in all pixels will be the limitting factor
+	Value of Limiting factor
+
+PARALLEL
+========
+
+Parallel code can be run with `make prun'
+Input variables are the same as the serial program, but also include
+	The Number of threads
+
+SUBMISSION
+==========
+
+Submitting to Morar is simple, just type `./submit'
+Log files are output to a log folder, within the normal output file
+Output is parsed with `awk' to output a file with number of threads, iterations, runtime and last max difference
+
+OTHER
+=====
+	running `make' will compile both parallel and serial codes
+	running `make run' will compile and run both parallel and serial
+	running `make clean' will clean the area of most files (including submission logs)
