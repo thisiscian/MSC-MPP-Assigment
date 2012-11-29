@@ -93,11 +93,8 @@ void p_reconstruct(char *inpath, char *infile, char *outpath, int limit_type, fl
 	while(keep_going == 1)
 	{
 		i++;
-		printf("rank %d, at the start of the while loop\n", rank);
 		reconstruct_image_segment(segment, edge, n_min[0], n_max[0], n_min[1], n_max[1], &max_change, &total);
-		printf("rank %d reconstructed \n", rank);
 		swap_halos(n, dims, n_range, segment, up, down, left, right, cart_comm);
-		printf("rank %d swapped halos \n", rank);
 
 		/* choose when to print average pixel value */
 		if(i % 100 == 0)
@@ -235,7 +232,6 @@ void gather_2D(void *buf_in, void *out_in, int rank, int nproc, int cart_comm, i
 	MPI_Status status;
 
 	MPI_Issend(out, n_range[0]*n_range[1], MPI_FLOAT, 0, 0, MPI_COMM_WORLD, &request);
-		printf("rank %d in gather mode\n", rank);
 	if(rank ==0)
 	{
 		for(j=0; j<nproc; j++)

@@ -2,7 +2,7 @@
 #$ -cwd -V -N mpp_cw -e output_files/logs/error-$JOB_NAME-$JOB_ID -o output_files/logs/$JOB_NAME-$JOB_ID
 
 LIMIT_TYPE=0
-LIMIT=1000
+LIMIT=100
 INPUT_FOLDER=../input_files
 INPUT_FILE=edge192x128.pgm 
 #INPUT_FILE=edge256x192.pgm 
@@ -23,16 +23,16 @@ make &>/dev/null
 cd bin
 	echo "#$INPUT_FILE -- $LIMIT"
 	echo "#SERIAL"
-	
   echo -e "#threads\titerations\tmax_change\treal time"
 	printf "##0\t"
-	(time $SERIAL) 2>&1	| awk '{RS="\n\n";} /Program did /{printf $3"\t" ;}  /Greatest change/{printf $7"\t";} /real/{gsub( /s/, "", $0 ); gsub ( /m/, " ", $0); printf ($2*60+$3)"\n";}'
+	$SERIAL	| awk '{RS="\n\n";} /Program did /{printf $3"\t" ;}  /Greatest change/{printf $7"\t";} /Time taken/printf $4"\n";}'
 	echo
+
 	echo "#PARALLEL"
   echo -e "#threads\titerations\tmax_change\treal time"
 	for (( N=$FOR_MIN; N<=$FOR_MAX;N+=$FOR_INCREMENT )); do
 		printf $N"\t"
-		(time mpiexec -n $N $PARALLEL) 2>&1 | awk '{RS="\n\n";} /Program did /{printf $3"\t" ;}  /Greatest change/{printf $7"\t";} /real/{gsub( /s/, "", $0 ); gsub ( /m/, " ", $0); printf ($2*60+$3)"\n";}'
+		mpiexec -n $N $PARALLEL | awk '{RS="\n\n";} /Program did /{printf $3"\t" ;}  /Greatest change/{printf $7"\t";} /Time taken/ printf $4"\n";}'
 	done
 
 	cd ../output_files

@@ -22,10 +22,10 @@ int main(int argc, char* argv[])
 	char *input_file = argv[4];
 	char *output_folder = argv[5];
 
-	// limit >= 1 means that you limiting the work done by the number of iterations
-	// limit < 1 means that you are limiting the work done by the delta change	
-	//
+	double time;
+	if(rank == 0) time = MPI_Wtime();
 	p_reconstruct(input_folder, input_file, output_folder, limit_type, &limit);
+	if(rank == 0)	printf("\nTime taken = %f\n", MPI_Wtime()-time);
 	MPI_Finalize();
 	return 0;
 }

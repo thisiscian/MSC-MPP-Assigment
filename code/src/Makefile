@@ -23,7 +23,7 @@ INPUT_FILE=edge192x128.pgm
 #INPUT_FILE=edge1024x1408.pgm 
 
 CC = mpicc
-CC_FLAGS = -lm
+CC_FLAGS = -lm -fastsse
 PSOURCE = main_parallel.c edgeview.c pgmio.c reconstruct.c parallel_reconstruct.c
 SSOURCE = main_serial.c edgeview.c pgmio.c reconstruct.c
 PHEADER = edgeview.h reconstruct.h parallel_reconstruct.h
